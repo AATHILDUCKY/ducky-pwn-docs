@@ -4,38 +4,93 @@
 
 # Ducky Pwn Docs
 
-Electron-wrapped intelligence command center built on React/Vite with local SQLite persistence for every project and finding.
+Local‑first security reporting and intelligence workspace built with Electron + React/Vite, backed by SQLite. Designed for fast, private report authoring, evidence capture, and deliverables generation — all on your machine.
 
-## Run Locally
+## What This Is
+Ducky Pwn Docs is a desktop app for red teamers, bug bounty hunters, and security consultants who need a clean workflow from findings → evidence → reports → email delivery. It runs offline, stores data locally, and produces professional output formats.
 
-1. Install dependencies: `npm install`
-2. Start both Vite and Electron: `npm run electron:dev`
+## Key Features
+- Project Vault: organize clients, targets, and findings per project.
+- Finding Management: severity, CVSS, assets, descriptions, custom fields.
+- Markdown Notes: rich editor for tactical notes and methodologies.
+- Evidence Attachments: images and videos with inline preview.
+- Deliverables: generate PDF / HTML / DOCX reports.
+- Email Send: SMTP settings, send finding reports with attachments.
+- Report History: track sent reports with timestamped history.
+- Local Persistence: SQLite database in user data directory.
+- Offline‑ready: no cloud dependency required.
 
-## Production Build
+## Downloads (Desktop)
+The desktop app will be distributed with downloadable installers:
+- Linux: `.deb` and `.AppImage`
+- Windows: `.exe` (NSIS installer)
 
-1. Build the renderer: `npm run build`
-2. Launch the packaged shell: `npm run electron:build`
+A web landing page with download buttons is planned for the public release.
 
-## Data Persistence
+## Run Locally (Dev)
+1) Install dependencies
+```
+npm install
+```
 
-Vault data is stored in SQLite at `${app.getPath('userData')}/ducky pwn docs/vault.db`, so all projects and findings survive across sessions.
+2) Start Vite + Electron
+```
+npm run electron:dev
+```
 
+## Build Production (Desktop)
+Build the renderer and package the app:
+```
+npm run build
+npm run dist
+```
+
+### Linux (.deb)
+```
+npm run dist
+```
+
+### Windows (.exe)
+Build on Windows (recommended):
+```
+npm run dist -- --win nsis
+```
+
+### macOS (.dmg / .zip)
+Build on macOS:
+```
+npm run dist -- --mac
+```
+
+## Data Storage
+All data is stored locally in SQLite:
+```
+${app.getPath('userData')}/ducky-pwn-docs/vault.db
+```
+
+Uploaded assets are stored alongside the database in:
+```
+${app.getPath('userData')}/ducky-pwn-docs/assets
+```
+
+## SMTP / Email
+Configure SMTP settings inside the Profile page. Reports can be sent as PDF/HTML/DOCX with attachments. For security, never commit real SMTP credentials. Use `.env.example` as a template.
+
+## Report Formats
+- PDF: professional printable report
+- HTML: email‑friendly layout
+- DOCX: editable report for Office/Google Docs
+
+## Roadmap
+- Public download portal (web site)
+- AppImage packaging for Linux
+- Update channels
 
 ## Open Source
-
-- GitHub: https://github.com/AATHILDUCKY
 - License: MIT
 
-## Setup
-
-	npm install
-	npm run electron:dev
-
-## Build
-
-	npm run build
-	npm run dist
+## Credits
+Created by AATHILDUCKY.
 
 ## Security
-
-Do not commit real SMTP credentials. Use .env.example as a template.
+Do not commit secrets. Remove SMTP credentials from any tracked files before publishing.

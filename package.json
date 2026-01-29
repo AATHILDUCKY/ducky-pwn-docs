@@ -78,7 +78,8 @@
       "target": [
         "nsis"
       ],
-      "icon": "assets/app-logo.ico"
+      "icon": "assets/app-logo.ico",
+      "signAndEditExecutable": false
     },
     "icon": "assets/app-logo.png"
   },
