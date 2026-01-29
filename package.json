@@ -62,7 +62,7 @@
         "deb"
       ],
       "maintainer": "AATHILDUCKY <me@aathilducky.com>",
-      "icon": "assets/app-logo.png",
+      "icon": "assets/icons",
       "executableName": "ducky-pwn-docs",
       "desktop": {
         "Name": "Ducky Pwn Docs",
