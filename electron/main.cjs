@@ -38,7 +38,7 @@ const createWindow = () => {
     win.webContents.openDevTools({ mode: 'detach' });
   } else {
     const appPath = app.getAppPath();
-    const indexPath = path.join(appPath, 'dist', 'index.html');
+    const indexPath = path.join(appPath, 'renderer', 'index.html');
     console.log('[app]', { appPath, indexPath });
     win.loadFile(indexPath);
   }

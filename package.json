@@ -49,10 +49,19 @@
   "build": {
     "appId": "com.ducky.pwndocs",
     "productName": "DuckyPwnDocs",
+    "directories": {
+      "output": "release"
+    },
     "files": [
-      "dist/**/*",
+      "renderer/**/*",
       "electron/**/*",
-      "package.json"
+      "package.json",
+      "!**/*.map",
+      "!**/node_modules/.cache/**",
+      "!**/node_modules/**/test/**",
+      "!**/node_modules/**/tests/**",
+      "!**/node_modules/**/docs/**",
+      "!**/node_modules/**/examples/**"
     ],
     "extraResources": [
       "assets/**/*"
