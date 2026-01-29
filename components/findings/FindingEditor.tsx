@@ -28,7 +28,15 @@ export const FindingEditor: React.FC<{
   
   const updateCustomField = (id: string, key: 'label' | 'value', val: string) => {
     const fields = workingCopy.customFields.map(f => f.id === id ? { ...f, [key]: val } : f);
-    onUpdate({ ...workingCopy, customFields: fields });
+    onUpdate({ ...workingCopy, customFields: sortFields(fields) });
+  };
+
+    const hasMedia = (value: string) => /\[(image|video)\|/.test(value || '');
+  const sortFields = (fields: Issue['customFields']) => {
+    const normal: Issue['customFields'] = [];
+    const media: Issue['customFields'] = [];
+    fields.forEach((f) => (hasMedia(f.value) ? media : normal).push(f));
+    return [...normal, ...media];
   };
 
   const moveField = (index: number, direction: 'up' | 'down') => {
@@ -36,7 +44,7 @@ export const FindingEditor: React.FC<{
     const target = direction === 'up' ? index - 1 : index + 1;
     if (target < 0 || target >= fields.length) return;
     [fields[index], fields[target]] = [fields[target], fields[index]];
-    onUpdate({ ...workingCopy, customFields: fields });
+    onUpdate({ ...workingCopy, customFields: sortFields(fields) });
   };
 
   return (
@@ -152,7 +160,7 @@ export const FindingEditor: React.FC<{
                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-2">These will appear at the bottom of the final report</p>
               </div>
               <button 
-                onClick={() => onUpdate({...workingCopy, customFields: [...workingCopy.customFields, { id: `cf-${Date.now()}`, label: 'New Attribute', value: '' }]})} 
+                onClick={() => onUpdate({...workingCopy, customFields: sortFields([...workingCopy.customFields, { id: `cf-${Date.now()}`, label: 'New Attribute', value: '' }])})} 
                 className="flex items-center gap-1.5 text-[10px] font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-widest transition-colors bg-indigo-50/50 px-4 py-2 rounded-xl"
               >
                 <PlusCircle size={14} /> Add Tactical Field

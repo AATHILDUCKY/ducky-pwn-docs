@@ -151,9 +151,25 @@ const toIssue = (row) => ({
 const DatabaseService = {
   async initialize() {
     await app.whenReady();
-    const storagePath = path.join(app.getPath('userData'), 'vanguard-security-os');
+    const storagePath = path.join(app.getPath('userData'), 'ducky-pwn-docs');
     fs.mkdirSync(storagePath, { recursive: true });
     const dbFile = path.join(storagePath, 'vault.db');
+    const versionFile = path.join(storagePath, '.app-version');
+    const installFile = path.join(storagePath, '.install-id');
+    const currentVersion = app.getVersion();
+    let installId = currentVersion;
+    try {
+      const stat = fs.statSync(process.execPath);
+      installId = String(stat.mtimeMs);
+    } catch (error) {
+      // Fallback to version when file stats are unavailable.
+    }
+    const prevInstallId = fs.existsSync(installFile) ? fs.readFileSync(installFile, 'utf8').trim() : '';
+    if (prevInstallId !== installId) {
+      if (fs.existsSync(dbFile)) fs.unlinkSync(dbFile);
+      fs.writeFileSync(installFile, installId);
+      fs.writeFileSync(versionFile, currentVersion);
+    }
     db = new Database(dbFile);
     db.pragma('foreign_keys = ON');
     db.pragma('journal_mode = WAL');
@@ -415,6 +431,12 @@ const DatabaseService = {
   },
 
   addEmailHistory(entry) {
+    const recent = db.prepare('SELECT * FROM email_history ORDER BY sent_at DESC LIMIT 1').get();
+    if (recent && recent.recipient === entry.recipient && recent.subject === entry.subject && recent.project_id === entry.project_id && recent.issue_id === entry.issue_id) {
+      const prev = Date.parse(recent.sent_at || '');
+      const now = Date.parse(entry.sent_at || '');
+      if (prev && now && Math.abs(now - prev) < 5000) return null;
+    }
     if (!entry?.id || !entry?.recipient || !entry?.sent_at) return null;
     db.prepare(`
       INSERT INTO email_history (
@@ -442,10 +464,12 @@ const DatabaseService = {
   },
 
   createUserProfile(profile) {
+    const existing = db.prepare('SELECT * FROM user_profile LIMIT 1').get();
+    if (existing) return toUserProfile(existing);
     if (!profile?.username) return null;
     const now = new Date().toISOString();
     const payload = {
-      id: profile.id || `u-${Date.now()}`,
+      id: profile.id || `u-${Date.now()}-${Math.random().toString(16).slice(2)}`,
       username: profile.username,
       full_name: profile.fullName || '',
       role: profile.role || 'Owner',

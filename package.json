@@ -1,7 +1,13 @@
 {
-  "name": "vanguard-security-os",
+  "name": "ducky-pwn-docs",
   "private": true,
   "version": "0.0.0",
+  "description": "Ducky Pwn Docs desktop security reporting suite",
+  "author": {
+    "name": "Ducky",
+    "email": "me@aathilducky.com"
+  },
+  "homepage": "https://localhost/ducky-pwn-docs",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -11,7 +17,8 @@
     "electron:dev": "concurrently \"npm:dev\" \"wait-on http://localhost:3000 && electron .\"",
     "electron:build": "npm run build && electron .",
     "electron:rebuild": "electron-rebuild -f -w better-sqlite3",
-    "postinstall": "electron-rebuild -f -w better-sqlite3"
+    "postinstall": "electron-builder install-app-deps",
+    "dist": "electron-builder"
   },
   "dependencies": {
     "@mdxeditor/editor": "^3.0.0",
@@ -32,7 +39,52 @@
     "vite": "^6.2.0",
     "concurrently": "^9.0.0",
     "electron": "^26.1.0",
+    "electron-builder": "^24.13.3",
     "electron-rebuild": "^3.2.9",
-    "wait-on": "^7.0.1"
-  }
+    "wait-on": "^7.0.1",
+    "tailwindcss": "^3.4.17",
+    "postcss": "^8.4.47",
+    "autoprefixer": "^10.4.20"
+  },
+  "build": {
+    "appId": "com.ducky.pwndocs",
+    "productName": "DuckyPwnDocs",
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      "assets/**/*"
+    ],
+    "linux": {
+      "target": [
+        "deb"
+      ],
+      "maintainer": "AATHILDUCKY <me@aathilducky.com>",
+      "icon": "assets/app-logo.png",
+      "executableName": "ducky-pwn-docs",
+      "desktop": {
+        "Name": "Ducky Pwn Docs",
+        "Terminal": false,
+        "Type": "Application",
+        "Icon": "ducky-pwn-docs",
+        "StartupWMClass": "ducky-pwn-docs",
+        "Comment": "Ducky Pwn Docs desktop security reporting suite",
+        "Categories": "Utility;"
+      }
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/app-logo.ico"
+    },
+    "icon": "assets/app-logo.png"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AATHILDUCKY/ducky-pwn-docs.git"
+  },
+  "license": "MIT"
 }

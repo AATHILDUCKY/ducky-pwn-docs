@@ -31,7 +31,7 @@ const ExportPanel = lazy(() => import('./components/ExportPanel'));
 const NotesPanel = lazy(() => import('./components/NotesPanel'));
 import { Project, UserProfile, UserProfileInput, SmtpSettings } from './types';
 import { fetchProjects, createProject, deleteProject } from './services/projectService';
-import { fetchUserProfile, updateUserProfile } from './services/userService';
+import { createUserProfile, fetchUserProfile, updateUserProfile } from './services/userService';
 import { fetchSmtpSettings, saveSmtpSettings } from './services/emailService';
 import ProfilePage from './components/ProfilePage';
 import HistoryPage from './components/HistoryPage';
@@ -292,7 +292,17 @@ const AppContent = () => {
   useEffect(() => {
     const boot = async () => {
       try {
-        const existing = await fetchUserProfile();
+        let existing = await fetchUserProfile();
+        if (!existing) {
+          existing = await createUserProfile({
+            username: 'user',
+            fullName: 'User',
+            role: 'Owner',
+            email: '',
+            avatarColor: '#4f46e5',
+            avatarUrl: '',
+          });
+        }
         if (existing) {
           setProfile(existing);
         }
@@ -556,6 +566,12 @@ const AppContent = () => {
             )}
           </div>
         </main>
+        <footer className="border-t border-slate-200 bg-white/80 backdrop-blur-md">
+          <div className="max-w-7xl mx-auto px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center justify-between">
+            <span>Ducky Pwn Docs</span>
+            <a href="https://github.com/AATHILDUCKY" target="_blank" rel="noreferrer" className="hover:text-indigo-600 transition-colors">github.com/AATHILDUCKY</a>
+          </div>
+        </footer>
       </div>
 
       {/* Initialize Modal */}

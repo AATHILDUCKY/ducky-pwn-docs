@@ -19,10 +19,12 @@ protocol.registerSchemesAsPrivileged([
 const isDevelopment = process.env.NODE_ENV !== 'production' && !app.isPackaged;
 
 const createWindow = () => {
+  const iconPath = path.join(app.isPackaged ? app.getAppPath() : process.cwd(), 'assets', 'app-logo.png');
   const win = new BrowserWindow({
     width: 1360,
     height: 900,
     show: false,
+    icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
@@ -35,7 +37,24 @@ const createWindow = () => {
     win.loadURL('http://localhost:3000');
     win.webContents.openDevTools({ mode: 'detach' });
   } else {
-    win.loadFile(path.join(process.cwd(), 'dist', 'index.html'));
+    const appPath = app.getAppPath();
+    const indexPath = path.join(appPath, 'dist', 'index.html');
+    console.log('[app]', { appPath, indexPath });
+    win.loadFile(indexPath);
+  }
+
+  win.webContents.on('did-fail-load', (_e, code, desc, url) => {
+    console.error('[app] did-fail-load', code, desc, url);
+  });
+  win.webContents.on('render-process-gone', (_e, details) => {
+    console.error('[app] render-process-gone', details);
+  });
+  win.webContents.on('console-message', (_e, level, message) => {
+    console.log('[renderer]', level, message);
+  });
+
+  if (process.env.DEBUG_OPEN_DEVTOOLS === '1') {
+    win.webContents.openDevTools({ mode: 'detach' });
   }
 
   win.once('ready-to-show', () => win.show());
@@ -180,7 +199,7 @@ const registerIpcHandlers = () => {
       }
       await sendMailWithRetry(transport, mail);
       DatabaseService.addEmailHistory({
-        id: `eh-${Date.now()}`,
+        id: `eh-${Date.now()}-${Math.random().toString(16).slice(2)}`,
         project_id: project.id,
         project_name: project.name,
         issue_id: issue.id,
@@ -248,7 +267,7 @@ const registerIpcHandlers = () => {
       }
       await sendMailWithRetry(transport, mail);
       DatabaseService.addEmailHistory({
-        id: `eh-${Date.now()}`,
+        id: `eh-${Date.now()}-${Math.random().toString(16).slice(2)}`,
         project_id: project.id,
         project_name: project.name,
         issue_id: null,
@@ -298,7 +317,9 @@ const registerIpcHandlers = () => {
     }
 
     const sourcePath = result.filePaths[0];
-    const storageRoot = path.join(process.cwd(), 'assets');
+    const storageRoot = app.isPackaged
+      ? path.join(app.getPath('userData'), 'ducky-pwn-docs', 'assets')
+      : path.join(process.cwd(), 'assets');
     await fs.mkdir(storageRoot, { recursive: true });
     const ext = path.extname(sourcePath);
     const safeName = path.basename(sourcePath, ext).replace(/[^a-zA-Z0-9-_]/g, '_');

@@ -2,7 +2,7 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Vanguard Security OS
+# Ducky Pwn Docs
 
 Electron-wrapped intelligence command center built on React/Vite with local SQLite persistence for every project and finding.
 
@@ -18,4 +18,24 @@ Electron-wrapped intelligence command center built on React/Vite with local SQLi
 
 ## Data Persistence
 
-Vault data is stored in SQLite at `${app.getPath('userData')}/vanguard-security-os/vault.db`, so all projects and findings survive across sessions.
+Vault data is stored in SQLite at `${app.getPath('userData')}/ducky pwn docs/vault.db`, so all projects and findings survive across sessions.
+
+
+## Open Source
+
+- GitHub: https://github.com/AATHILDUCKY
+- License: MIT
+
+## Setup
+
+	npm install
+	npm run electron:dev
+
+## Build
+
+	npm run build
+	npm run dist
+
+## Security
+
+Do not commit real SMTP credentials. Use .env.example as a template.

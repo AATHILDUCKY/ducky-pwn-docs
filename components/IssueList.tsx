@@ -265,7 +265,7 @@ const IssueList: React.FC<IssueListProps> = ({ activeProjectId, activeProject, r
         <div className="flex items-center gap-4">
           <button onClick={() => setViewMode('list')} className="p-2 text-slate-500 hover:text-indigo-600 bg-slate-50 rounded-xl transition-all"><ChevronLeft size={20} /></button>
           <div className="flex flex-col">
-            <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] leading-none">Vanguard Intelligence Dossier</span>
+            <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] leading-none">Ducky Docs Dossier</span>
             <span className="text-sm font-bold text-slate-900 mt-1 truncate max-w-[400px]">{workingCopy?.title}</span>
           </div>
         </div>
