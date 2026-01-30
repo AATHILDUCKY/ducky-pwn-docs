@@ -27,7 +27,11 @@ const IssueList: React.FC<IssueListProps> = ({ activeProjectId, activeProject, r
   const [viewMode, setViewMode] = useState<'list' | 'view' | 'edit'>('list');
   const [workingCopy, setWorkingCopy] = useState<Issue | null>(null);
   const [searchFilter, setSearchFilter] = useState('');
-  const [showUploadModal, setShowUploadModal] = useState<{ type: 'image' | 'video'; targetField: string } | null>(null);
+  const [showUploadModal, setShowUploadModal] = useState<{
+    type: 'image' | 'video';
+    targetField: string;
+    selection?: { start: number; end: number };
+  } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Issue | null>(null);
   const [deleteStep, setDeleteStep] = useState<'confirm' | 'final'>('confirm');
   const [showPreview, setShowPreview] = useState(false);
@@ -199,10 +203,21 @@ const IssueList: React.FC<IssueListProps> = ({ activeProjectId, activeProject, r
     }
   };
 
+  const insertAtSelection = (text: string, insert: string, selection?: { start: number; end: number }) => {
+    const safeText = text || '';
+    const fallback = safeText.length;
+    const rawStart = selection?.start ?? fallback;
+    const rawEnd = selection?.end ?? fallback;
+    const start = Math.max(0, Math.min(rawStart, safeText.length));
+    const end = Math.max(0, Math.min(rawEnd, safeText.length));
+    const [from, to] = start <= end ? [start, end] : [end, start];
+    return `${safeText.slice(0, from)}${insert}${safeText.slice(to)}`;
+  };
+
   const handleInsertMedia = async () => {
     if (!showUploadModal) return;
     if (!workingCopy) return;
-    const { type, targetField } = showUploadModal;
+    const { type, targetField, selection } = showUploadModal;
     const media = await selectMediaFile(type);
     if (!media) {
       setShowUploadModal(null);
@@ -218,13 +233,13 @@ const IssueList: React.FC<IssueListProps> = ({ activeProjectId, activeProject, r
     if (targetField === 'description') {
       setWorkingCopy({
         ...workingCopy,
-        description: `${workingCopy.description || ''}${tag}`,
+        description: insertAtSelection(workingCopy.description || '', tag, selection),
         evidence: [...(workingCopy.evidence || []), evidenceEntry],
         updatedAt: new Date().toISOString(),
       });
     } else {
       const updatedFields = (workingCopy.customFields || []).map((field) =>
-        field.id === targetField ? { ...field, value: `${field.value || ''}${tag}` } : field
+        field.id === targetField ? { ...field, value: insertAtSelection(field.value || '', tag, selection) } : field
       );
       setWorkingCopy({
         ...workingCopy,
@@ -491,7 +506,7 @@ const IssueList: React.FC<IssueListProps> = ({ activeProjectId, activeProject, r
             <FindingEditor
               workingCopy={workingCopy}
               onUpdate={setWorkingCopy}
-              onOpenUpload={(type, targetField) => setShowUploadModal({ type, targetField })}
+              onOpenUpload={(type, targetField, selection) => setShowUploadModal({ type, targetField, selection })}
             />
           )
         )}

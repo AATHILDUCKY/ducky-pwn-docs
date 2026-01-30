@@ -1,34 +1,140 @@
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Bold, Italic, Code, Link, Table as TableIcon, ImageIcon, Video, PlusCircle, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
 import { Issue } from '../../types';
 import { MarkdownRenderer } from './MarkdownRenderer';
 
-const EditorToolbar: React.FC<{ onUpload: (type: 'image' | 'video') => void }> = ({ onUpload }) => (
+type ToolbarAction = 'bold' | 'italic' | 'code' | 'link' | 'table';
+
+const EditorToolbar: React.FC<{
+  onUpload: (type: 'image' | 'video') => void;
+  onAction: (action: ToolbarAction) => void;
+}> = ({ onUpload, onAction }) => (
   <div className="flex items-center gap-0.5 bg-white border border-slate-200 rounded-xl p-1 shadow-2xl shadow-slate-200/50 z-[50] animate-in fade-in slide-in-from-bottom-1 duration-200">
-    <button className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600"><Bold size={13} /></button>
-    <button className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600"><Italic size={13} /></button>
-    <button className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600"><Code size={13} /></button>
-    <button className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600"><Link size={13} /></button>
-    <button className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600"><TableIcon size={13} /></button>
+    <button onClick={() => onAction('bold')} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600" title="Bold"><Bold size={13} /></button>
+    <button onClick={() => onAction('italic')} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600" title="Italic"><Italic size={13} /></button>
+    <button onClick={() => onAction('code')} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600" title="Inline code"><Code size={13} /></button>
+    <button onClick={() => onAction('link')} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600" title="Link"><Link size={13} /></button>
+    <button onClick={() => onAction('table')} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600" title="Table"><TableIcon size={13} /></button>
     <div className="w-px h-4 bg-slate-200 mx-1.5"></div>
-    <button onClick={() => onUpload('image')} className="p-1.5 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg text-slate-600 transition-colors"><ImageIcon size={13} /></button>
-    <button onClick={() => onUpload('video')} className="p-1.5 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg text-slate-600 transition-colors"><Video size={13} /></button>
+    <button onClick={() => onUpload('image')} className="p-1.5 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg text-slate-600 transition-colors" title="Insert image"><ImageIcon size={13} /></button>
+    <button onClick={() => onUpload('video')} className="p-1.5 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg text-slate-600 transition-colors" title="Insert video"><Video size={13} /></button>
   </div>
 );
 
 export const FindingEditor: React.FC<{ 
   workingCopy: Issue; 
   onUpdate: (data: Issue) => void;
-  onOpenUpload: (type: 'image' | 'video', targetField: string) => void;
+  onOpenUpload: (type: 'image' | 'video', targetField: string, selection?: { start: number; end: number }) => void;
 }> = ({ workingCopy, onUpdate, onOpenUpload }) => {
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const selectionRef = useRef<Record<string, { start: number; end: number }>>({});
+  const fieldRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
   const updateMainField = (key: keyof Issue, value: any) => onUpdate({ ...workingCopy, [key]: value });
   
   const updateCustomField = (id: string, key: 'label' | 'value', val: string) => {
     const fields = workingCopy.customFields.map(f => f.id === id ? { ...f, [key]: val } : f);
     onUpdate({ ...workingCopy, customFields: fields });
+  };
+
+  const rememberSelection = (fieldId: string, element: HTMLTextAreaElement | null) => {
+    if (!element) return;
+    const start = element.selectionStart ?? element.value.length;
+    const end = element.selectionEnd ?? element.value.length;
+    selectionRef.current[fieldId] = { start, end };
+  };
+
+  const setFieldRef = (fieldId: string) => (element: HTMLTextAreaElement | null) => {
+    fieldRefs.current[fieldId] = element;
+  };
+
+  const resolveSelection = (fieldId: string) => {
+    const existing = selectionRef.current[fieldId];
+    if (existing) return existing;
+    const fallback =
+      fieldId === 'description'
+        ? workingCopy.description || ''
+        : workingCopy.customFields.find((field) => field.id === fieldId)?.value || '';
+    const end = fallback.length;
+    return { start: end, end };
+  };
+
+  const getFieldValue = (fieldId: string) =>
+    fieldId === 'description'
+      ? workingCopy.description || ''
+      : workingCopy.customFields.find((field) => field.id === fieldId)?.value || '';
+
+  const setFieldValue = (fieldId: string, value: string) => {
+    if (fieldId === 'description') {
+      updateMainField('description', value);
+      return;
+    }
+    updateCustomField(fieldId, 'value', value);
+  };
+
+  const insertAtSelection = (
+    text: string,
+    insert: string,
+    selection: { start: number; end: number }
+  ) => {
+    const safeText = text || '';
+    const rawStart = selection.start ?? safeText.length;
+    const rawEnd = selection.end ?? safeText.length;
+    const start = Math.max(0, Math.min(rawStart, safeText.length));
+    const end = Math.max(0, Math.min(rawEnd, safeText.length));
+    const [from, to] = start <= end ? [start, end] : [end, start];
+    const nextText = `${safeText.slice(0, from)}${insert}${safeText.slice(to)}`;
+    return { nextText, start: from, end: from + insert.length };
+  };
+
+  const applySelection = (fieldId: string, start: number, end: number) => {
+    selectionRef.current[fieldId] = { start, end };
+    window.requestAnimationFrame(() => {
+      const element = fieldRefs.current[fieldId];
+      if (!element) return;
+      element.focus();
+      try {
+        element.setSelectionRange(start, end);
+      } catch {
+        // ignore selection errors for unsupported inputs
+      }
+    });
+  };
+
+  const applyFormat = (fieldId: string, action: ToolbarAction) => {
+    const current = getFieldValue(fieldId);
+    const selection = resolveSelection(fieldId);
+    const start = Math.min(selection.start, selection.end);
+    const end = Math.max(selection.start, selection.end);
+    const selected = current.slice(start, end);
+
+    if (action === 'table') {
+      const table = `\n\n| Column | Details |\n| --- | --- |\n| Value | Value |\n`;
+      const { nextText, start: insertStart } = insertAtSelection(current, table, selection);
+      setFieldValue(fieldId, nextText);
+      applySelection(fieldId, insertStart + table.length, insertStart + table.length);
+      return;
+    }
+
+    const wrap = (before: string, after: string, placeholder: string, selectUrl = false) => {
+      const content = selected || placeholder;
+      const insert = `${before}${content}${after}`;
+      const { nextText, start: insertStart } = insertAtSelection(current, insert, selection);
+      setFieldValue(fieldId, nextText);
+      if (selectUrl && insert.includes('https://')) {
+        const urlStart = insertStart + insert.indexOf('https://');
+        applySelection(fieldId, urlStart, urlStart + 'https://example.com'.length);
+      } else {
+        const selectionStart = insertStart + before.length;
+        applySelection(fieldId, selectionStart, selectionStart + content.length);
+      }
+    };
+
+    if (action === 'bold') return wrap('**', '**', 'bold text');
+    if (action === 'italic') return wrap('*', '*', 'italic text');
+    if (action === 'code') return wrap('`', '`', 'code');
+    if (action === 'link') return wrap('[', '](https://example.com)', 'link text', true);
   };
 
   const moveField = (index: number, direction: 'up' | 'down') => {
@@ -115,30 +221,23 @@ export const FindingEditor: React.FC<{
             ))}
           </div>
 
-          <div className="space-y-4">
+            <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-slate-50 pb-2.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Description</label>
-              {focusedField === 'description' && <EditorToolbar onUpload={(type) => onOpenUpload(type, 'description')} />}
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => onOpenUpload('image', 'description')}
-                className="px-3 py-2 text-[9px] font-black uppercase tracking-widest rounded-xl bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all"
-              >
-                Insert Image
-              </button>
-              <button
-                type="button"
-                onClick={() => onOpenUpload('video', 'description')}
-                className="px-3 py-2 text-[9px] font-black uppercase tracking-widest rounded-xl bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all"
-              >
-                Insert Video
-              </button>
+              {focusedField === 'description' && (
+                <EditorToolbar
+                  onUpload={(type) => onOpenUpload(type, 'description', resolveSelection('description'))}
+                  onAction={(action) => applyFormat('description', action)}
+                />
+              )}
             </div>
             <textarea 
+              ref={setFieldRef('description')}
               value={workingCopy.description}
-              onFocus={() => setFocusedField('description')}
+              onFocus={(e) => { setFocusedField('description'); rememberSelection('description', e.currentTarget); }}
+              onClick={(e) => rememberSelection('description', e.currentTarget)}
+              onSelect={(e) => rememberSelection('description', e.currentTarget)}
+              onKeyUp={(e) => rememberSelection('description', e.currentTarget)}
               onChange={(e) => updateMainField('description', e.target.value)}
               className="w-full min-h-[260px] sm:min-h-[400px] text-[15px] sm:text-[16px] text-slate-800 leading-relaxed p-1 border-none outline-none focus:ring-0 placeholder:text-slate-100 bg-transparent resize-none font-medium"
               placeholder="Detail the vulnerability analysis..."
@@ -172,7 +271,12 @@ export const FindingEditor: React.FC<{
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Attribute Segment {idx + 1}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {focusedField === cf.id && <EditorToolbar onUpload={(type) => onOpenUpload(type, cf.id)} />}
+                      {focusedField === cf.id && (
+                        <EditorToolbar
+                          onUpload={(type) => onOpenUpload(type, cf.id, resolveSelection(cf.id))}
+                          onAction={(action) => applyFormat(cf.id, action)}
+                        />
+                      )}
                       <button onClick={() => onUpdate({...workingCopy, customFields: workingCopy.customFields.filter(f => f.id !== cf.id)})} className="p-2 text-slate-300 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100 ml-2"><Trash2 size={16} /></button>
                     </div>
                   </div>
@@ -189,8 +293,12 @@ export const FindingEditor: React.FC<{
                     <div className="space-y-2">
                       <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Field Value (Markdown)</label>
                       <textarea 
+                        ref={setFieldRef(cf.id)}
                         value={cf.value} 
-                        onFocus={() => setFocusedField(cf.id)}
+                        onFocus={(e) => { setFocusedField(cf.id); rememberSelection(cf.id, e.currentTarget); }}
+                        onClick={(e) => rememberSelection(cf.id, e.currentTarget)}
+                        onSelect={(e) => rememberSelection(cf.id, e.currentTarget)}
+                        onKeyUp={(e) => rememberSelection(cf.id, e.currentTarget)}
                         onChange={(e) => updateCustomField(cf.id, 'value', e.target.value)}
                         className="w-full bg-transparent border-none text-[15px] font-medium text-slate-800 outline-none resize-none min-h-[120px] leading-relaxed"
                         placeholder="Enter data or instructions..."

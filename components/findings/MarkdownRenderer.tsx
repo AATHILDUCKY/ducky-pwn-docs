@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
 import { Download, ImageIcon, Video, PlayCircle, Maximize2, Minus, Plus, X } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export const MediaArtifact: React.FC<{ type: 'image' | 'video'; url: string; alt?: string }> = ({ type, url, alt }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -152,15 +154,77 @@ export const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => 
         if (imageMatch) return <MediaArtifact key={i} type="image" url={imageMatch[1]} alt={imageMatch[2]} />;
         if (videoMatch) return <MediaArtifact key={i} type="video" url={videoMatch[1]} alt={videoMatch[2]} />;
 
-        return part.split('\n').map((line, j) => {
-          let processed = line.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900">$1</strong>');
-          processed = processed.replace(/`(.*?)`/g, '<code class="bg-slate-100 px-1.5 py-0.5 rounded font-mono text-indigo-600 text-[0.9em]">$1</code>');
-          
-          if (line.trim().startsWith('- ')) {
-            return <li key={`${i}-${j}`} className="text-[15px] text-slate-800 leading-relaxed ml-4 my-1" dangerouslySetInnerHTML={{ __html: processed.trim().substring(2) }} />;
-          }
-          return processed.trim() ? <p key={`${i}-${j}`} className="text-[15px] text-slate-800 leading-relaxed my-2" dangerouslySetInnerHTML={{ __html: processed }} /> : null;
-        });
+        if (!part.trim()) return null;
+
+        return (
+          <ReactMarkdown
+            key={i}
+            remarkPlugins={[remarkGfm]}
+            components={{
+              p: ({ children, ...props }) => (
+                <p className="text-[15px] text-slate-800 leading-relaxed my-2" {...props}>{children}</p>
+              ),
+              strong: ({ children, ...props }) => (
+                <strong className="font-bold text-slate-900" {...props}>{children}</strong>
+              ),
+              em: ({ children, ...props }) => (
+                <em className="italic text-slate-800" {...props}>{children}</em>
+              ),
+              code: ({ inline, children, ...props }) =>
+                inline ? (
+                  <code className="bg-slate-100 px-1.5 py-0.5 rounded font-mono text-indigo-600 text-[0.9em]" {...props}>
+                    {children}
+                  </code>
+                ) : (
+                  <pre className="bg-slate-950 text-slate-100 rounded-xl p-4 overflow-x-auto text-[13px]" {...props}>
+                    <code className="font-mono">{children}</code>
+                  </pre>
+                ),
+              a: ({ children, ...props }) => (
+                <a className="text-indigo-600 font-semibold underline underline-offset-2" {...props}>{children}</a>
+              ),
+              ul: ({ children, ...props }) => (
+                <ul className="list-disc ml-5 space-y-1 text-[15px] text-slate-800" {...props}>{children}</ul>
+              ),
+              ol: ({ children, ...props }) => (
+                <ol className="list-decimal ml-5 space-y-1 text-[15px] text-slate-800" {...props}>{children}</ol>
+              ),
+              li: ({ children, ...props }) => (
+                <li className="leading-relaxed" {...props}>{children}</li>
+              ),
+              h1: ({ children, ...props }) => (
+                <h1 className="text-2xl font-black text-slate-900 mt-6 mb-2" {...props}>{children}</h1>
+              ),
+              h2: ({ children, ...props }) => (
+                <h2 className="text-xl font-black text-slate-900 mt-6 mb-2" {...props}>{children}</h2>
+              ),
+              h3: ({ children, ...props }) => (
+                <h3 className="text-lg font-black text-slate-900 mt-5 mb-2" {...props}>{children}</h3>
+              ),
+              h4: ({ children, ...props }) => (
+                <h4 className="text-base font-black text-slate-900 mt-4 mb-2" {...props}>{children}</h4>
+              ),
+              table: ({ children, ...props }) => (
+                <div className="overflow-x-auto my-3">
+                  <table className="min-w-full border border-slate-200 text-[13px]" {...props}>{children}</table>
+                </div>
+              ),
+              th: ({ children, ...props }) => (
+                <th className="border border-slate-200 bg-slate-50 px-3 py-2 text-left font-black uppercase tracking-widest text-[10px] text-slate-500" {...props}>{children}</th>
+              ),
+              td: ({ children, ...props }) => (
+                <td className="border border-slate-200 px-3 py-2 text-slate-700" {...props}>{children}</td>
+              ),
+              blockquote: ({ children, ...props }) => (
+                <blockquote className="border-l-4 border-indigo-200 bg-indigo-50/40 px-4 py-3 text-slate-700 italic rounded-r-lg" {...props}>
+                  {children}
+                </blockquote>
+              ),
+            }}
+          >
+            {part}
+          </ReactMarkdown>
+        );
       })}
     </div>
   );
