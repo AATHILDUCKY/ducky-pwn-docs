@@ -405,9 +405,9 @@ const NotesPanel: React.FC<{ activeProjectId: string; activeProject?: Project | 
   }, [canUseNotes, isDirty, isSaving]);
 
   return (
-    <div className="flex h-[calc(100vh-220px)] bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
+    <div className="flex flex-col lg:flex-row min-h-[60vh] lg:h-[calc(100vh-220px)] bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
       {/* LEFT: list */}
-      <aside className="w-80 border-r border-slate-100 bg-white/80 p-6 flex flex-col">
+      <aside className="w-full lg:w-80 lg:border-r border-slate-100 bg-white/80 p-4 sm:p-6 flex flex-col">
         <div className="flex items-center justify-between mb-6">
           <div>
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Project Notes</p>
@@ -489,8 +489,8 @@ const NotesPanel: React.FC<{ activeProjectId: string; activeProject?: Project | 
       </aside>
 
       {/* RIGHT: editor */}
-      <section className="flex-1 flex flex-col">
-        <div className="flex items-center justify-between px-8 py-6 border-b border-slate-100">
+      <section className="flex-1 flex flex-col min-h-[50vh]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-8 py-4 sm:py-6 border-b border-slate-100">
           <div>
             <p className="text-[9px] font-black text-indigo-600 uppercase tracking-[0.4em]">Markdown Workspace</p>
             <h2 className="text-2xl font-black text-slate-800 tracking-tight">{noteDraft?.title || 'Select a note'}</h2>
@@ -533,13 +533,13 @@ const NotesPanel: React.FC<{ activeProjectId: string; activeProject?: Project | 
         </div>
 
         {(!apiAvailable || uiError) && (
-          <div className="mx-8 mt-4 bg-rose-50/80 border border-rose-100 text-rose-600 text-[10px] font-black uppercase tracking-[0.25em] px-6 py-3 rounded-2xl flex items-center gap-2">
+          <div className="mx-4 sm:mx-8 mt-4 bg-rose-50/80 border border-rose-100 text-rose-600 text-[10px] font-black uppercase tracking-[0.25em] px-6 py-3 rounded-2xl flex items-center gap-2">
             <AlertTriangle size={14} />
             <span>{apiAvailable ? uiError : 'Launch the Electron app to use Notes with SQLite.'}</span>
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto p-8 bg-slate-50/40 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-50/40 custom-scrollbar">
           {!noteDraft ? (
             <div className="h-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
               Select or create a note
@@ -550,7 +550,7 @@ const NotesPanel: React.FC<{ activeProjectId: string; activeProject?: Project | 
                 type="text"
                 value={noteDraft.title}
                 onChange={(e) => updateDraftTitle(e.target.value)}
-                className="w-full text-3xl font-black text-slate-900 tracking-tight p-3 rounded-2xl border border-slate-100 bg-white shadow-sm outline-none focus:ring-4 focus:ring-indigo-500/10"
+                className="w-full text-2xl sm:text-3xl font-black text-slate-900 tracking-tight p-3 rounded-2xl border border-slate-100 bg-white shadow-sm outline-none focus:ring-4 focus:ring-indigo-500/10"
                 placeholder="Note title..."
               />
 

@@ -43,9 +43,9 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack }) => {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div className="space-y-1">
-          <h2 className="text-4xl font-black text-slate-800 tracking-tight">Mail History</h2>
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight">Mail History</h2>
           <p className="text-slate-500 font-medium text-sm">Latest report emails sent from this workstation.</p>
         </div>
         <button
@@ -68,9 +68,9 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onBack }) => {
             </p>
           </div>
         ) : (
-          <div className="max-h-[520px] overflow-y-auto custom-scrollbar divide-y divide-slate-100">
+          <div className="max-h-[60vh] sm:max-h-[520px] overflow-y-auto custom-scrollbar divide-y divide-slate-100">
             {remembered.map((entry) => (
-              <div key={entry.id} className="p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div key={entry.id} className="p-4 sm:p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
                     <Mail size={18} />

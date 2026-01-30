@@ -165,9 +165,9 @@ const ExportPanel = ({ externalProjects, externalActiveId, onProjectSelect }: Ex
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div className="space-y-1">
-          <h2 className="text-4xl font-black text-slate-800 tracking-tight">Deliverable Architect</h2>
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight">Deliverable Architect</h2>
           <p className="text-slate-500 font-medium text-sm">Compile and export security intelligence for strategic stakeholders.</p>
         </div>
       </div>
@@ -176,7 +176,7 @@ const ExportPanel = ({ externalProjects, externalActiveId, onProjectSelect }: Ex
         <div className="lg:col-span-8 space-y-8">
           
           {/* Project Selection Section */}
-          <section className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm transition-all hover:shadow-xl hover:shadow-indigo-100/5">
+          <section className="bg-white p-6 sm:p-8 rounded-[2rem] border border-slate-200 shadow-sm transition-all hover:shadow-xl hover:shadow-indigo-100/5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-indigo-50 rounded-xl text-indigo-600">
@@ -186,7 +186,7 @@ const ExportPanel = ({ externalProjects, externalActiveId, onProjectSelect }: Ex
                   1. Target Context Vault
                 </h3>
               </div>
-              <div className="relative group min-w-[240px]">
+              <div className="relative group w-full sm:min-w-[240px]">
                 <Search className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${searchQuery ? 'text-indigo-500' : 'text-slate-300'}`} size={16} />
                 <input 
                   type="text" 
@@ -222,7 +222,7 @@ const ExportPanel = ({ externalProjects, externalActiveId, onProjectSelect }: Ex
           </section>
 
           {/* Templates Section */}
-          <section className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
+          <section className="bg-white p-6 sm:p-8 rounded-[2rem] border border-slate-200 shadow-sm">
              <div className="flex items-center gap-3 mb-8">
                 <div className="p-2.5 bg-slate-50 rounded-xl text-slate-400">
                   <Layout size={20} />
@@ -448,6 +448,7 @@ const ExportPanel = ({ externalProjects, externalActiveId, onProjectSelect }: Ex
               value={emailTo}
               onChange={(e) => setEmailTo(e.target.value)}
               list="recent-project-emails"
+              disabled={emailSending}
               className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all shadow-sm"
             />
             <datalist id="recent-project-emails">
@@ -462,6 +463,7 @@ const ExportPanel = ({ externalProjects, externalActiveId, onProjectSelect }: Ex
               type="text"
               value={emailSubject}
               onChange={(e) => setEmailSubject(e.target.value)}
+              disabled={emailSending}
               className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all shadow-sm"
             />
           </div>
@@ -470,6 +472,7 @@ const ExportPanel = ({ externalProjects, externalActiveId, onProjectSelect }: Ex
             <select
               value={emailFormat}
               onChange={(e) => setEmailFormat(e.target.value as 'pdf' | 'html' | 'docx')}
+              disabled={emailSending}
               className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-900 outline-none"
             >
               <option value="pdf">PDF Attachment</option>
@@ -482,9 +485,16 @@ const ExportPanel = ({ externalProjects, externalActiveId, onProjectSelect }: Ex
             <textarea
               value={emailMessage}
               onChange={(e) => setEmailMessage(e.target.value)}
+              disabled={emailSending}
               className="w-full min-h-[120px] bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all shadow-sm"
             />
           </div>
+          {emailSending && (
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-600">
+              <Loader2 size={14} className="animate-spin" />
+              Sending report…
+            </div>
+          )}
           {emailError && (
             <p className="text-[10px] font-black uppercase tracking-widest text-rose-500">
               {emailError}

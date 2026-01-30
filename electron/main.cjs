@@ -1055,7 +1055,15 @@ app.whenReady().then(async () => {
     }
   });
 
-  await DatabaseService.initialize();
+  try {
+    await DatabaseService.initialize();
+  } catch (error) {
+    console.error('Database initialization failed', error);
+    const detail = error?.message || 'Unable to initialize local SQLite storage.';
+    dialog.showErrorBox('Ducky Pwn Docs', detail);
+    app.quit();
+    return;
+  }
   registerIpcHandlers();
   createWindow();
 

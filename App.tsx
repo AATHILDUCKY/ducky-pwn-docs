@@ -21,7 +21,8 @@ import {
   Command,
   Loader2,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Activity
 } from 'lucide-react';
 
 const Dashboard = lazy(() => import('./components/Dashboard'));
@@ -29,6 +30,7 @@ const IssueList = lazy(() => import('./components/IssueList'));
 const MethodologyTracker = lazy(() => import('./components/MethodologyTracker'));
 const ExportPanel = lazy(() => import('./components/ExportPanel'));
 const NotesPanel = lazy(() => import('./components/NotesPanel'));
+const OperationLogsPage = lazy(() => import('./components/OperationLogsPage'));
 import { Project, UserProfile, UserProfileInput, SmtpSettings } from './types';
 import { fetchProjects, createProject, deleteProject } from './services/projectService';
 import { createUserProfile, fetchUserProfile, updateUserProfile } from './services/userService';
@@ -45,12 +47,13 @@ const Navigation: React.FC<{ onRefresh: () => void }> = ({ onRefresh }) => {
     { path: '/notes', label: 'Notes', icon: FileText },
     { path: '/issues', label: 'Findings', icon: AlertTriangle },
     { path: '/methodologies', label: 'Methodology', icon: CheckSquare },
+    { path: '/operations', label: 'Operations', icon: Activity },
     { path: '/export', label: 'Deliverables', icon: Download },
   ];
 
   return (
-    <nav className="flex items-center justify-between gap-3 border-b border-slate-200 px-6 bg-white/80 backdrop-blur-md sticky top-16 z-[90]">
-      <div className="flex items-center gap-1">
+    <nav className="flex items-center justify-between gap-2 border-b border-slate-200 px-3 sm:px-6 bg-white/80 backdrop-blur-md sticky top-16 z-[90]">
+      <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide pr-2">
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = location.pathname === item.path;
@@ -58,7 +61,7 @@ const Navigation: React.FC<{ onRefresh: () => void }> = ({ onRefresh }) => {
           <Link
             key={item.path}
             to={item.path}
-            className={`flex items-center gap-2 px-5 py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${
+            className={`flex items-center gap-2 px-3 sm:px-5 py-3 sm:py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] transition-all relative whitespace-nowrap ${
               isActive ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
             }`}
           >
@@ -170,7 +173,7 @@ const Header: React.FC<{
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-6 sticky top-0 z-[100]">
+    <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-4 sm:px-6 sticky top-0 z-[100]">
     <div className="flex items-center gap-3">
       <div className="bg-slate-900 p-2 rounded-xl text-white shadow-lg">
         <Shield size={20} strokeWidth={2.5} />
@@ -181,7 +184,7 @@ const Header: React.FC<{
       </div>
     </div>
 
-    <div className="flex-1 max-w-md mx-12">
+    <div className="hidden md:block flex-1 max-w-md mx-6 lg:mx-12">
       <div className="relative group">
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={14} />
         <input 
@@ -192,7 +195,7 @@ const Header: React.FC<{
       </div>
     </div>
 
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2 sm:gap-3">
       <button className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-xl transition-all relative">
         <Bell size={18} />
         <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-rose-500 rounded-full border-2 border-white"></span>
@@ -488,8 +491,8 @@ const AppContent = () => {
         </aside>
 
         {/* Workspace */}
-        <main className="flex-1 overflow-y-auto bg-slate-50/10 custom-scrollbar">
-          <div className={`${location.pathname === '/notes' ? 'max-w-[1400px]' : 'max-w-7xl'} mx-auto p-10`}>
+        <main className={`flex-1 overflow-y-auto bg-slate-50/10 custom-scrollbar ${location.pathname === '/' ? 'no-scrollbar' : ''}`}>
+          <div className={`${location.pathname === '/notes' ? 'max-w-[1400px]' : 'max-w-7xl'} mx-auto p-4 sm:p-6 lg:p-10`}>
             {projectError ? (
               <div className="min-h-[400px] flex flex-col items-center justify-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-rose-400">
                 {projectError}
@@ -514,6 +517,10 @@ const AppContent = () => {
                   <Route 
                     path="/issues" 
                     element={<IssueList activeProjectId={activeProjectId} activeProject={activeProject} refreshProjects={refreshProjects} />} 
+                  />
+                  <Route
+                    path="/operations"
+                    element={<OperationLogsPage activeProjectId={activeProjectId} profile={profile} />}
                   />
                   <Route
                     path="/profile"
@@ -579,7 +586,7 @@ const AppContent = () => {
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsAddingProject(false)} />
           <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200">
-            <div className="p-10 space-y-8">
+            <div className="p-6 sm:p-10 space-y-8">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-2xl font-black text-slate-800 tracking-tight">Initialize Vault</h3>

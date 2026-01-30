@@ -12,7 +12,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { Methodology } from '../types';
-import { createMethodology, createMethodologyTask, deleteMethodology, fetchMethodologies, updateMethodology, updateMethodologyTask } from '../services/methodologyService';
+import { createMethodology, createMethodologyTask, deleteMethodology, deleteMethodologyTask, fetchMethodologies, updateMethodology, updateMethodologyTask } from '../services/methodologyService';
 import { notify } from '../utils/notify';
 
 const MethodologyTracker = () => {
@@ -138,6 +138,22 @@ const MethodologyTracker = () => {
     }
   };
 
+  const handleDeleteTask = async () => {
+    if (!editTask) return;
+    const confirmed = window.confirm(`Delete task "${editTask.title}"?`);
+    if (!confirmed) return;
+    try {
+      setError(null);
+      await deleteMethodologyTask(editTask.id);
+      await loadMethodologies();
+      setEditTask(null);
+    } catch (err) {
+      console.error('Failed to delete task', err);
+      setError('Unable to delete task. Please launch the Electron app.');
+      notify('Unable to delete task.');
+    }
+  };
+
   const handleSaveMethodology = async () => {
     const name = editMethodName.trim();
     if (!editMethodId || !name) return;
@@ -171,12 +187,12 @@ const MethodologyTracker = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-slate-800 tracking-tight">Methodologies</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">Methodologies</h2>
           <p className="text-slate-500 mt-1">Guided testing workflows for consistent results.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-2">
             Import Template
           </button>
@@ -190,9 +206,9 @@ const MethodologyTracker = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6 lg:gap-8">
         {/* Sidebar Selector */}
-        <div className="lg:col-span-1 space-y-3">
+        <div className="space-y-3">
           {isLoading ? (
             <div className="bg-white border border-slate-200 rounded-2xl p-6 text-xs font-semibold text-slate-400">
               Loading methodologies...
@@ -227,9 +243,9 @@ const MethodologyTracker = () => {
         </div>
 
         {/* Task Board */}
-        <div className="lg:col-span-3">
+        <div>
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div className="p-4 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
               <div>
                 <h3 className="font-bold text-slate-800 text-lg">{current?.name || 'Methodology'}</h3>
                 <p className="text-xs text-slate-400 font-semibold uppercase tracking-widest mt-1">
@@ -265,7 +281,7 @@ const MethodologyTracker = () => {
             </div>
 
             <div className="p-4 bg-slate-50/30">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {/* Columns */}
                 {(['todo', 'in-progress', 'done'] as const).map(status => (
                   <div key={status} className="space-y-4">
@@ -279,7 +295,7 @@ const MethodologyTracker = () => {
                     </div>
 
                     <div
-                      className={`space-y-3 min-h-[300px] p-2 rounded-2xl transition-all ${
+                      className={`flex flex-col items-center gap-2 min-h-[180px] sm:min-h-[220px] p-2 rounded-2xl transition-all ${
                         dragOverStatus === status ? 'bg-indigo-50/60 border border-dashed border-indigo-200' : ''
                       }`}
                       onDragOver={(event) => {
@@ -298,13 +314,13 @@ const MethodologyTracker = () => {
                           draggable
                           onDragStart={() => setDragTaskId(task.id)}
                           onDragEnd={() => setDragTaskId(null)}
-                          className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-indigo-300 transition-all group cursor-grab active:cursor-grabbing"
+                          className="w-full max-w-[360px] bg-gradient-to-br from-white to-slate-50/80 p-3 rounded-xl border border-slate-200/80 shadow-sm hover:border-indigo-300 transition-all group cursor-grab active:cursor-grabbing"
                         >
                           <div className="flex items-start gap-3">
                             <button className={`mt-0.5 transition-colors ${task.status === 'done' ? 'text-emerald-500' : 'text-slate-300 hover:text-indigo-400'}`}>
                               {task.status === 'done' ? <CheckCircle2 size={18} /> : <Circle size={18} />}
                             </button>
-                            <span className={`text-sm font-semibold leading-snug ${task.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
+                            <span className={`text-[13px] font-semibold leading-snug ${task.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
                               {task.title}
                             </span>
                           </div>
@@ -329,7 +345,7 @@ const MethodologyTracker = () => {
                           setNewTaskStatus(status);
                           setShowTaskModal(true);
                         }}
-                        className="w-full py-3 rounded-xl border border-dashed border-slate-300 text-slate-400 hover:text-indigo-500 hover:border-indigo-300 transition-all text-xs font-bold flex items-center justify-center gap-2"
+                        className="w-full max-w-[360px] py-3 rounded-xl border border-dashed border-slate-300 text-slate-400 hover:text-indigo-500 hover:border-indigo-300 transition-all text-xs font-bold flex items-center justify-center gap-2"
                       >
                         <Plus size={14} />
                         Add Task
@@ -371,6 +387,7 @@ const MethodologyTracker = () => {
         onStatusChange={setEditTaskStatus}
         onClose={() => setEditTask(null)}
         onSubmit={handleSaveTask}
+        onDelete={handleDeleteTask}
         error={error}
       />
 
@@ -408,7 +425,7 @@ function CreateMethodologyModal({
     <div className="fixed inset-0 z-[400] flex items-center justify-center p-6 animate-in fade-in duration-300">
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden">
-        <div className="p-10 space-y-8">
+        <div className="p-6 sm:p-10 space-y-8">
           <div>
             <h3 className="text-xl font-black text-slate-800 tracking-tight">Create Methodology</h3>
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Ducky Pwn Docs Protocol</p>
@@ -468,7 +485,7 @@ function CreateTaskModal({
     <div className="fixed inset-0 z-[400] flex items-center justify-center p-6 animate-in fade-in duration-300">
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden">
-        <div className="p-10 space-y-8">
+        <div className="p-6 sm:p-10 space-y-8">
           <div>
             <h3 className="text-xl font-black text-slate-800 tracking-tight">Add Task</h3>
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Methodology Task</p>
@@ -524,6 +541,7 @@ function EditTaskModal({
   onStatusChange,
   onClose,
   onSubmit,
+  onDelete,
   error,
 }: {
   isOpen: boolean;
@@ -533,6 +551,7 @@ function EditTaskModal({
   onStatusChange: (value: 'todo' | 'in-progress' | 'done') => void;
   onClose: () => void;
   onSubmit: () => void;
+  onDelete: () => void;
   error: string | null;
 }) {
   if (!isOpen) return null;
@@ -540,7 +559,7 @@ function EditTaskModal({
     <div className="fixed inset-0 z-[400] flex items-center justify-center p-6 animate-in fade-in duration-300">
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden">
-        <div className="p-10 space-y-8">
+        <div className="p-6 sm:p-10 space-y-8">
           <div>
             <h3 className="text-xl font-black text-slate-800 tracking-tight">Edit Task</h3>
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Update title or status</p>
@@ -566,8 +585,14 @@ function EditTaskModal({
               <option value="done">Completed</option>
             </select>
           </div>
-          <div className="flex gap-4 pt-2">
+          <div className="flex flex-wrap gap-3 pt-2">
             <button onClick={onClose} className="flex-1 py-4 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all">Cancel</button>
+            <button
+              onClick={onDelete}
+              className="flex-1 py-4 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
+            >
+              Delete Task
+            </button>
             <button
               onClick={onSubmit}
               disabled={!name.trim()}
@@ -607,7 +632,7 @@ function EditMethodologyModal({
     <div className="fixed inset-0 z-[400] flex items-center justify-center p-6 animate-in fade-in duration-300">
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden">
-        <div className="p-10 space-y-8">
+        <div className="p-6 sm:p-10 space-y-8">
           <div>
             <h3 className="text-xl font-black text-slate-800 tracking-tight">Edit Methodology</h3>
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Rename your workflow</p>

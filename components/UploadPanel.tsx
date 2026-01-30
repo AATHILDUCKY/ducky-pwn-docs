@@ -28,14 +28,14 @@ const UploadPanel = () => {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div>
-        <h2 className="text-3xl font-bold text-slate-800 tracking-tight">Data Ingestion</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">Data Ingestion</h2>
         <p className="text-slate-500 mt-1">Import findings from your favorite security scanning tools.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         <div className="lg:col-span-2 space-y-6">
           {/* Tool Selector */}
-          <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm">
             <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
               <Zap size={18} className="text-amber-500" />
               1. Select Source Tool
@@ -59,7 +59,7 @@ const UploadPanel = () => {
           </div>
 
           {/* Upload Dropzone */}
-          <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm">
             <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
               <HardDrive size={18} className="text-indigo-500" />
               2. Upload Results
@@ -67,7 +67,7 @@ const UploadPanel = () => {
             <div 
               onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
               onDragLeave={() => setDragActive(false)}
-              className={`border-2 border-dashed rounded-2xl p-12 transition-all flex flex-col items-center justify-center text-center group cursor-pointer ${
+              className={`border-2 border-dashed rounded-2xl p-8 sm:p-12 transition-all flex flex-col items-center justify-center text-center group cursor-pointer ${
                 dragActive ? 'border-indigo-500 bg-indigo-50/50' : 'border-slate-200 hover:border-indigo-400 hover:bg-slate-50/50'
               }`}
             >
@@ -100,7 +100,7 @@ const UploadPanel = () => {
                 <div className="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
               </div>
             </div>
-            <div className="font-mono text-[11px] space-y-2 h-[400px] overflow-y-auto scrollbar-hide">
+            <div className="font-mono text-[11px] space-y-2 h-[240px] sm:h-[320px] lg:h-[400px] overflow-y-auto scrollbar-hide">
               <p className="text-slate-500">[SYSTEM] Session initialized...</p>
               <p className="text-emerald-400">[READY] Waiting for payload ingest.</p>
               <p className="text-slate-500 mt-4">_</p>

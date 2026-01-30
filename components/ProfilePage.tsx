@@ -41,12 +41,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div className="space-y-1">
-          <h2 className="text-4xl font-black text-slate-800 tracking-tight">Profile Settings</h2>
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight">Profile Settings</h2>
           <p className="text-slate-500 font-medium text-sm">Manage your identity and secure mail configuration.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={onOpenHistory}
             className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2"
@@ -65,7 +65,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <section className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm">
+        <section className="bg-white p-6 sm:p-8 lg:p-10 rounded-[2.5rem] border border-slate-200 shadow-sm">
           <div className="flex items-center gap-3 mb-8">
             <div className="p-2.5 bg-indigo-50 rounded-xl text-indigo-600">
               <UserCog size={20} />
@@ -73,7 +73,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
             <h3 className="font-black text-sm text-slate-800 uppercase tracking-widest">User Profile</h3>
           </div>
 
-          <div className="flex items-center gap-6 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-6 mb-8">
             <div className="w-20 h-20 rounded-full overflow-hidden border border-slate-200 shadow-sm bg-slate-50">
               {profile.avatarUrl ? (
                 <img src={profile.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
@@ -137,7 +137,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
           </div>
         </section>
 
-        <section className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm">
+        <section className="bg-white p-6 sm:p-8 lg:p-10 rounded-[2.5rem] border border-slate-200 shadow-sm">
           <div className="flex items-center gap-3 mb-8">
             <div className="p-2.5 bg-slate-50 rounded-xl text-slate-600">
               <Mail size={20} />

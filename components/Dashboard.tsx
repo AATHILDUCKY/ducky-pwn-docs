@@ -25,9 +25,8 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Shield,
-  Activity,
 } from 'lucide-react';
-import { Activity as ActivityType, Issue, Project, UserProfile } from '../types';
+import { Issue, Project, UserProfile } from '../types';
 import { fetchIssues } from '../services/issueService';
 import { notify } from '../utils/notify';
 
@@ -75,7 +74,7 @@ const getRangeDays = (range: 'week' | 'month' | 'quarter') => {
 };
 
 const AnalyticsCard = ({ title, value, icon: Icon, trend, colorClass = "text-indigo-600", children }: any) => (
-  <div className="bg-white/70 backdrop-blur-lg p-8 rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-2xl hover:shadow-indigo-100/30 transition-all group overflow-hidden relative">
+  <div className="bg-white/70 backdrop-blur-lg p-6 sm:p-8 rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-2xl hover:shadow-indigo-100/30 transition-all group overflow-hidden relative">
     <div className="flex items-center justify-between mb-6">
       <div className="p-3 bg-slate-50 rounded-2xl group-hover:bg-indigo-50 transition-colors">
         <Icon size={18} className={colorClass} />
@@ -124,7 +123,6 @@ const RiskHeatmap: React.FC<{ heatLevel: number }> = ({ heatLevel }) => {
 
 const Dashboard: React.FC<{ activeProjectId: string; activeProject?: Project | null; profile?: UserProfile | null }> = ({ activeProjectId, activeProject, profile }) => {
   const [issues, setIssues] = useState<Issue[]>([]);
-  const [activityUser, setActivityUser] = useState<string>('Analyst');
   const [isLoading, setIsLoading] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
   const [pulseRange, setPulseRange] = useState<'week' | 'month' | 'quarter'>('week');
@@ -153,10 +151,6 @@ const Dashboard: React.FC<{ activeProjectId: string; activeProject?: Project | n
       isMounted = false;
     };
   }, [activeProjectId]);
-
-  useEffect(() => {
-    setActivityUser(profile?.username || 'Analyst');
-  }, [profile]);
 
   const metrics = useMemo(() => {
     const total = issues.length;
@@ -260,17 +254,6 @@ const Dashboard: React.FC<{ activeProjectId: string; activeProject?: Project | n
     ];
   }, [issues]);
 
-  const recentActivity: ActivityType[] = useMemo(() => {
-    const sorted = [...issues].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-    return sorted.slice(0, 6).map((issue) => ({
-      id: issue.id,
-      user: activityUser,
-      action: issue.isFixed || issue.state === 'Fixed' ? 'verified fix' : 'updated finding',
-      target: issue.title || 'Untitled finding',
-      timestamp: formatRelativeTime(issue.updatedAt),
-    }));
-  }, [issues, activityUser]);
-
   const topFindings = useMemo(() => {
     const sorted = [...issues].sort((a, b) => {
       const severityDiff = (SEVERITY_ORDER[b.severity] || 0) - (SEVERITY_ORDER[a.severity] || 0);
@@ -286,7 +269,7 @@ const Dashboard: React.FC<{ activeProjectId: string; activeProject?: Project | n
     }));
   }, [issues]);
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
+    <div className="space-y-8 sm:space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
            <div className="flex items-center gap-2 mb-2">
@@ -295,11 +278,11 @@ const Dashboard: React.FC<{ activeProjectId: string; activeProject?: Project | n
                 Operational Readiness {metrics.slaCompliance.toFixed(1)}%
               </span>
            </div>
-          <h2 className="text-5xl font-black text-slate-800 tracking-tighter leading-none">Command Center</h2>
+          <h2 className="text-3xl sm:text-5xl font-black text-slate-800 tracking-tighter leading-none">Command Center</h2>
           <p className="text-slate-500 text-sm font-medium">Strategic intelligence and risk distribution for the active project vault.</p>
         </div>
         <div className="flex items-center gap-4">
-           <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+           <div className="bg-white border border-slate-200 rounded-2xl p-3 sm:p-4 flex items-center gap-4 shadow-sm">
               <div className="text-right">
                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Active Scope</p>
                  <p className="text-lg font-black text-indigo-600 tracking-tight">{activeProject?.name || 'No Active Project'}</p>
@@ -323,7 +306,7 @@ const Dashboard: React.FC<{ activeProjectId: string; activeProject?: Project | n
       )}
 
       {/* Primary Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
         <AnalyticsCard title="Risk Posture Index" value={metrics.riskIndex} icon={ShieldAlert} trend={metrics.riskIndex ? 12 : 0} colorClass="text-rose-500">
            <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
               <div className="h-full bg-gradient-to-r from-rose-500 to-orange-500" style={{ width: `${metrics.riskIndex}%` }}></div>
@@ -355,11 +338,11 @@ const Dashboard: React.FC<{ activeProjectId: string; activeProject?: Project | n
         </AnalyticsCard>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
         
         {/* Main Chart Area */}
-        <div className="lg:col-span-8 bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm space-y-10">
-          <header className="flex items-center justify-between">
+        <div className="lg:col-span-8 bg-white p-6 sm:p-8 lg:p-10 rounded-[3rem] border border-slate-200 shadow-sm space-y-8 sm:space-y-10">
+          <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-xl font-black text-slate-800 tracking-tight">Remediation Pulse</h3>
               <p className="text-xs text-slate-400 font-bold tracking-widest uppercase mt-1">Findings Ingress vs. Verification Flow</p>
@@ -379,7 +362,7 @@ const Dashboard: React.FC<{ activeProjectId: string; activeProject?: Project | n
             </div>
           </header>
           
-          <div className="h-[350px] w-full">
+          <div className="h-[260px] sm:h-[320px] lg:h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={remediationVelocity}>
                 <defs>
@@ -421,7 +404,7 @@ const Dashboard: React.FC<{ activeProjectId: string; activeProject?: Project | n
         <div className="lg:col-span-4 space-y-10">
           
           {/* Exposure Heatmap */}
-          <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col h-[400px]">
+          <div className="bg-white p-6 sm:p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col min-h-[280px] h-auto lg:h-[400px]">
             <h3 className="text-base font-black text-slate-800 tracking-tight mb-2">Exposure Matrix</h3>
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-8">Asset Risk Concentration</p>
             <div className="flex-1 relative mb-6">
@@ -446,45 +429,12 @@ const Dashboard: React.FC<{ activeProjectId: string; activeProject?: Project | n
             </div>
           </div>
 
-          {/* Tactical Feed */}
-          <div className="bg-slate-900 rounded-[3rem] shadow-xl overflow-hidden flex flex-col">
-            <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/5">
-              <h3 className="font-black text-white tracking-tight text-sm">Operation Logs</h3>
-              <div className="flex items-center gap-1 bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest">
-                 Live Feed <Activity size={10} />
-              </div>
-            </div>
-            <div className="divide-y divide-white/5 max-h-[450px] overflow-y-auto custom-scrollbar bg-slate-900">
-              {recentActivity.length ? recentActivity.map((activity) => (
-                <div key={activity.id} className="p-6 flex items-start gap-4 hover:bg-white/5 transition-all cursor-pointer group">
-                  <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shrink-0">
-                    <Clock size={14} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs text-slate-300 font-medium leading-snug">
-                      <span className="font-black text-white">{activity.user}</span> {activity.action}
-                    </p>
-                    <p className="text-[10px] font-bold text-indigo-400 truncate mt-0.5 uppercase tracking-widest">{activity.target}</p>
-                    <p className="text-[8px] text-slate-500 font-black mt-1 uppercase tracking-[0.2em]">{activity.timestamp}</p>
-                  </div>
-                </div>
-              )) : (
-                <div className="p-8 text-center text-[9px] font-black uppercase tracking-[0.3em] text-slate-500">
-                  No recent activity
-                </div>
-              )}
-            </div>
-            <button className="p-5 bg-white/5 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-white transition-all">
-               Deep Dive Tactical Logs
-            </button>
-          </div>
-
         </div>
       </div>
 
       {/* Surface Distribution */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-         <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10">
+         <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-[3rem] border border-slate-200 shadow-sm space-y-8">
             <div className="flex items-center justify-between">
                <h3 className="text-xl font-black text-slate-800 tracking-tight">Finding Types</h3>
                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Internal vs External</p>
@@ -516,7 +466,7 @@ const Dashboard: React.FC<{ activeProjectId: string; activeProject?: Project | n
             </div>
          </div>
 
-         <div className="bg-gradient-to-br from-indigo-600 to-indigo-900 p-10 rounded-[3rem] shadow-2xl relative overflow-hidden group">
+         <div className="bg-gradient-to-br from-indigo-600 to-indigo-900 p-6 sm:p-8 lg:p-10 rounded-[3rem] shadow-2xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-16 opacity-10 pointer-events-none group-hover:scale-125 transition-transform duration-[2000ms]">
                <Shield size={260} strokeWidth={1} color="white" />
             </div>

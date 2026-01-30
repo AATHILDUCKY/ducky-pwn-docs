@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { ChevronLeft, Save, X, Edit2, Search, ShieldAlert, Eye, Share2, Upload, Trash2, Send } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { ChevronLeft, Save, X, Edit2, Search, ShieldAlert, Eye, Share2, Upload, Trash2, Send, Loader2 } from 'lucide-react';
 import { Issue, Project } from '../types';
 import { Button, SeverityBadge, Modal } from './ui/Elements';
 import { FindingReport } from './findings/FindingReport';
@@ -17,6 +17,11 @@ interface IssueListProps {
 }
 
 const IssueList: React.FC<IssueListProps> = ({ activeProjectId, activeProject, refreshProjects }) => {
+  const apiAvailable = useMemo(
+    () => typeof window !== 'undefined' && Boolean((window as any).electronAPI?.getIssues),
+    []
+  );
+  const PAGE_SIZE = 10;
   const [issues, setIssues] = useState<Issue[]>([]);
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'view' | 'edit'>('list');
@@ -34,30 +39,85 @@ const IssueList: React.FC<IssueListProps> = ({ activeProjectId, activeProject, r
   const [emailSending, setEmailSending] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [recentEmails, setRecentEmails] = useState<string[]>([]);
+  const [uiError, setUiError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const loadMoreMobileRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreDesktopRef = useRef<HTMLDivElement | null>(null);
 
   const loadIssues = useCallback(async () => {
     if (!activeProjectId) return;
+    if (!apiAvailable) {
+      setUiError('Launch the Electron app to manage findings in SQLite.');
+      setIssues([]);
+      return;
+    }
     try {
       const issues = await fetchIssues(activeProjectId);
       setIssues(issues || []);
+      setUiError(null);
     } catch (error) {
       console.error('Failed to load issues', error);
       notify('Failed to load issues.');
       setIssues([]);
     }
-  }, [activeProjectId]);
+  }, [activeProjectId, apiAvailable]);
 
   useEffect(() => {
     loadIssues();
   }, [loadIssues]);
 
   const currentIssues = useMemo(() => issues, [issues]);
-  const filteredIssues = useMemo(() => currentIssues.filter(i => i.title.toLowerCase().includes(searchFilter.toLowerCase())), [currentIssues, searchFilter]);
+  const searchTokens = useMemo(
+    () => searchFilter.trim().toLowerCase().split(/\s+/).filter(Boolean),
+    [searchFilter]
+  );
+  const filteredIssues = useMemo(() => {
+    if (!searchTokens.length) return currentIssues;
+    return currentIssues.filter((issue) => {
+      const haystack = [
+        issue.title,
+        issue.affected,
+        issue.severity,
+        issue.state,
+        issue.type,
+        issue.description,
+        issue.solution,
+        ...(issue.tags || []),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return searchTokens.every((token) => haystack.includes(token));
+    });
+  }, [currentIssues, searchTokens]);
+  const visibleIssues = useMemo(() => filteredIssues.slice(0, visibleCount), [filteredIssues, visibleCount]);
+  const hasMoreIssues = visibleCount < filteredIssues.length;
 
   useEffect(() => {
     setSelectedIssueId(null);
     setViewMode('list');
   }, [activeProjectId]);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchFilter, activeProjectId]);
+
+  useEffect(() => {
+    if (!hasMoreIssues) return;
+    const nodes = [loadMoreMobileRef.current, loadMoreDesktopRef.current].filter(Boolean) as HTMLDivElement[];
+    if (!nodes.length) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredIssues.length));
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    nodes.forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+  }, [hasMoreIssues, filteredIssues.length]);
 
   useEffect(() => {
     const stored = localStorage.getItem('vanguardRecentEmails');
@@ -82,31 +142,61 @@ const IssueList: React.FC<IssueListProps> = ({ activeProjectId, activeProject, r
 
   const saveFinding = async () => {
     if (!workingCopy || !activeProjectId) return;
+    if (!apiAvailable) {
+      setUiError('Launch the Electron app to save findings.');
+      notify('Launch the Electron app to save findings.');
+      return;
+    }
     try {
-      await persistIssue(activeProjectId, workingCopy);
+      setIsSaving(true);
+      const payload = { ...workingCopy, updatedAt: new Date().toISOString() };
+      await persistIssue(activeProjectId, payload);
       await loadIssues();
       await refreshProjects();
-      setSelectedIssueId(workingCopy.id);
+      setSelectedIssueId(payload.id);
+      setWorkingCopy(payload);
       setViewMode('view');
     } catch (error) {
       console.error('Unable to persist finding', error);
       notify('Unable to save finding.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleStatusChange = async (issue: Issue, newState: Issue['state']) => {
     if (!activeProjectId) return;
-    const updated = { ...issue, state: newState, isFixed: newState === 'Fixed', updatedAt: new Date().toISOString() };
-    await persistIssue(activeProjectId, updated);
-    await loadIssues();
+    if (!apiAvailable) {
+      setUiError('Launch the Electron app to update findings.');
+      notify('Launch the Electron app to update findings.');
+      return;
+    }
+    try {
+      const updated = { ...issue, state: newState, isFixed: newState === 'Fixed', updatedAt: new Date().toISOString() };
+      await persistIssue(activeProjectId, updated);
+      await loadIssues();
+    } catch (error) {
+      console.error('Unable to update finding', error);
+      notify('Unable to update finding.');
+    }
   };
 
   const confirmDelete = async () => {
     if (!deleteTarget || !activeProjectId) return;
-    await deleteIssue(activeProjectId, deleteTarget.id);
-    setDeleteTarget(null);
-    setDeleteStep('confirm');
-    await loadIssues();
+    if (!apiAvailable) {
+      setUiError('Launch the Electron app to delete findings.');
+      notify('Launch the Electron app to delete findings.');
+      return;
+    }
+    try {
+      await deleteIssue(activeProjectId, deleteTarget.id);
+      setDeleteTarget(null);
+      setDeleteStep('confirm');
+      await loadIssues();
+    } catch (error) {
+      console.error('Unable to delete finding', error);
+      notify('Unable to delete finding.');
+    }
   };
 
   const handleInsertMedia = async () => {
@@ -148,17 +238,17 @@ const IssueList: React.FC<IssueListProps> = ({ activeProjectId, activeProject, r
 
   if (viewMode === 'list') {
     return (
-      <div className="space-y-10 animate-in fade-in duration-500 pb-20">
+      <div className="flex flex-col gap-6 sm:gap-8 animate-in fade-in duration-500 h-[calc(100vh-220px)] min-h-[520px]">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-1">
             <div className="flex items-center gap-2 mb-2">
               <ShieldAlert size={14} className="text-indigo-600" />
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{activeProject.client} / {activeProject.name}</span>
             </div>
-            <h2 className="text-4xl font-black text-slate-800 tracking-tighter leading-none">Findings Hub</h2>
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tighter leading-none">Findings Hub</h2>
             <p className="text-slate-500 text-sm font-medium mt-1">Managed audit vault for discovered intelligence and risks.</p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="relative group">
               <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input 
@@ -166,94 +256,188 @@ const IssueList: React.FC<IssueListProps> = ({ activeProjectId, activeProject, r
                 placeholder="Search..." 
                 value={searchFilter} 
                 onChange={(e) => setSearchFilter(e.target.value)} 
-                className="pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[11px] font-black uppercase tracking-widest outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all shadow-sm" 
+                className="w-full sm:w-auto pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[11px] font-black uppercase tracking-widest outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all shadow-sm" 
               />
             </div>
-            <Button onClick={() => {
-              const i: any = { 
-                id: `f-${Date.now()}`, 
-                title: 'Draft Finding', 
-                severity: 'Info', 
-                description: '', 
-                customFields: [], 
-                cvssScore: '0.0', 
-                cvssVector: 'CVSS:4.0/...', 
-                type: 'Internal',
-                state: 'Open',
-                affected: '',
-                isFixed: false,
-                tags: [],
-                solution: '',
-                evidence: [],
-                comments: [],
-                updatedAt: new Date().toISOString()
-              }; 
-              setWorkingCopy(i); 
-              setSelectedIssueId(i.id); 
-              setViewMode('edit');
-            }}>New Finding</Button>
+            <Button
+              onClick={async () => {
+                if (!activeProjectId) return;
+                if (!apiAvailable) {
+                  setUiError('Launch the Electron app to create findings.');
+                  notify('Launch the Electron app to create findings.');
+                  return;
+                }
+                const now = new Date().toISOString();
+                const draft: Issue = {
+                  id: `f-${Date.now()}`,
+                  title: 'Draft Finding',
+                  severity: 'Info',
+                  description: '',
+                  customFields: [],
+                  cvssScore: '0.0',
+                  cvssVector: 'CVSS:4.0/...',
+                  type: 'Internal',
+                  state: 'Open',
+                  affected: '',
+                  isFixed: false,
+                  tags: [],
+                  solution: '',
+                  evidence: [],
+                  comments: [],
+                  updatedAt: now,
+                };
+                setIssues((prev) => [draft, ...prev]);
+                setWorkingCopy(draft);
+                setSelectedIssueId(draft.id);
+                setViewMode('edit');
+                setUiError(null);
+                try {
+                  setIsSaving(true);
+                  await persistIssue(activeProjectId, draft);
+                  await refreshProjects();
+                  await loadIssues();
+                } catch (error) {
+                  console.error('Unable to create finding', error);
+                  notify('Unable to create finding.');
+                  setIssues((prev) => prev.filter((item) => item.id !== draft.id));
+                } finally {
+                  setIsSaving(false);
+                }
+              }}
+              disabled={!activeProjectId || isSaving}
+            >
+              {isSaving ? 'Saving...' : 'New Finding'}
+            </Button>
           </div>
         </div>
 
-        <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden overflow-x-auto">
-          <table className="w-full text-left min-w-[800px]">
-            <thead className="bg-slate-50/50 border-b border-slate-100">
-              <tr className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-400">
-                <th className="px-10 py-6">Intelligence Identity</th>
-                <th className="px-6 py-6 text-center">Status</th>
-                <th className="px-6 py-6">Severity</th>
-                <th className="px-10 py-6 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {filteredIssues.map(issue => (
-                <tr 
-                  key={issue.id} 
-                  onClick={() => { setSelectedIssueId(issue.id); setViewMode('view'); }} 
-                  className="group cursor-pointer hover:bg-indigo-50/20 transition-all"
-                >
-                  <td className="px-10 py-6">
-                    <div className="flex flex-col">
-                      <span className="text-[14px] font-black text-slate-800 group-hover:text-indigo-600 transition-colors leading-tight">{issue.title}</span>
-                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1.5">{issue.affected || 'General Infrastructure'}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-6 text-center">
-                    <select
-                      value={issue.state}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => handleStatusChange(issue, e.target.value as Issue['state'])}
-                      className="text-[9px] font-black uppercase tracking-widest bg-white border border-slate-200 rounded-full px-3 py-1.5 text-slate-500"
+        {uiError && (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50/70 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-rose-500">
+            {uiError}
+          </div>
+        )}
+
+        <div className="flex-1 min-h-0">
+          <div className="md:hidden h-full overflow-y-auto pr-1 custom-scrollbar no-scrollbar space-y-4">
+            {visibleIssues.map((issue) => (
+              <div
+                key={issue.id}
+                onClick={() => { setSelectedIssueId(issue.id); setViewMode('view'); }}
+                className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-4 hover:shadow-md transition-all cursor-pointer"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-black text-slate-800 leading-tight truncate">{issue.title}</p>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1.5">{issue.affected || 'General Infrastructure'}</p>
+                  </div>
+                  <SeverityBadge severity={issue.severity} />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <select
+                    value={issue.state}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => handleStatusChange(issue, e.target.value as Issue['state'])}
+                    className="text-[9px] font-black uppercase tracking-widest bg-white border border-slate-200 rounded-full px-3 py-1.5 text-slate-500"
+                  >
+                    <option value="Open">Open</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Fixed">Fixed</option>
+                    <option value="Draft">Draft</option>
+                    <option value="Published">Published</option>
+                    <option value="QA">QA</option>
+                    <option value="Closed">Closed</option>
+                  </select>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setSelectedIssueId(issue.id); setViewMode('edit'); }}
+                      className="p-2.5 text-slate-400 hover:text-indigo-600 bg-white rounded-xl border border-slate-100 shadow-sm"
                     >
-                      <option value="Open">Open</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Fixed">Fixed</option>
-                      <option value="Draft">Draft</option>
-                      <option value="Published">Published</option>
-                      <option value="QA">QA</option>
-                      <option value="Closed">Closed</option>
-                    </select>
-                  </td>
-                  <td className="px-6 py-6">
-                    <SeverityBadge severity={issue.severity} />
-                  </td>
-                  <td className="px-10 py-6 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                      <button onClick={(e) => { e.stopPropagation(); setSelectedIssueId(issue.id); setViewMode('edit'); }} className="p-2.5 text-slate-400 hover:text-indigo-600 bg-white rounded-xl border border-slate-100 shadow-sm">
-                        <Edit2 size={14} />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setDeleteTarget(issue); setDeleteStep('confirm'); }}
-                        className="p-2.5 text-slate-400 hover:text-rose-500 bg-white rounded-xl border border-slate-100 shadow-sm"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      <Edit2 size={14} />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setDeleteTarget(issue); setDeleteStep('confirm'); }}
+                      className="p-2.5 text-slate-400 hover:text-rose-500 bg-white rounded-xl border border-slate-100 shadow-sm"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {hasMoreIssues && (
+              <div ref={loadMoreMobileRef} className="py-4 text-center text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">
+                Loading more…
+              </div>
+            )}
+          </div>
+
+          <div className="hidden md:block h-full bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+            <div className="h-full overflow-y-auto overflow-x-auto custom-scrollbar no-scrollbar">
+              <table className="w-full text-left min-w-[800px]">
+                <thead className="bg-slate-50/50 border-b border-slate-100 sticky top-0 z-10">
+                  <tr className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-400">
+                    <th className="px-10 py-6">Intelligence Identity</th>
+                    <th className="px-6 py-6 text-center">Status</th>
+                    <th className="px-6 py-6">Severity</th>
+                    <th className="px-10 py-6 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {visibleIssues.map(issue => (
+                    <tr 
+                      key={issue.id} 
+                      onClick={() => { setSelectedIssueId(issue.id); setViewMode('view'); }} 
+                      className="group cursor-pointer hover:bg-indigo-50/20 transition-all"
+                    >
+                      <td className="px-10 py-6">
+                        <div className="flex flex-col">
+                          <span className="text-[14px] font-black text-slate-800 group-hover:text-indigo-600 transition-colors leading-tight">{issue.title}</span>
+                          <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1.5">{issue.affected || 'General Infrastructure'}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-6 text-center">
+                        <select
+                          value={issue.state}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => handleStatusChange(issue, e.target.value as Issue['state'])}
+                          className="text-[9px] font-black uppercase tracking-widest bg-white border border-slate-200 rounded-full px-3 py-1.5 text-slate-500"
+                        >
+                          <option value="Open">Open</option>
+                          <option value="In Progress">In Progress</option>
+                          <option value="Fixed">Fixed</option>
+                          <option value="Draft">Draft</option>
+                          <option value="Published">Published</option>
+                          <option value="QA">QA</option>
+                          <option value="Closed">Closed</option>
+                        </select>
+                      </td>
+                      <td className="px-6 py-6">
+                        <SeverityBadge severity={issue.severity} />
+                      </td>
+                      <td className="px-10 py-6 text-right">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                          <button onClick={(e) => { e.stopPropagation(); setSelectedIssueId(issue.id); setViewMode('edit'); }} className="p-2.5 text-slate-400 hover:text-indigo-600 bg-white rounded-xl border border-slate-100 shadow-sm">
+                            <Edit2 size={14} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDeleteTarget(issue); setDeleteStep('confirm'); }}
+                            className="p-2.5 text-slate-400 hover:text-rose-500 bg-white rounded-xl border border-slate-100 shadow-sm"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {hasMoreIssues && (
+                <div ref={loadMoreDesktopRef} className="py-4 text-center text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">
+                  Loading more…
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -261,7 +445,7 @@ const IssueList: React.FC<IssueListProps> = ({ activeProjectId, activeProject, r
 
   return (
     <div className="fixed inset-0 bg-white z-[200] flex flex-col animate-in slide-in-from-right-4 duration-500 overflow-hidden">
-      <header className="h-16 border-b border-slate-200 px-8 flex items-center justify-between bg-white/95 backdrop-blur-md shrink-0 z-[110]">
+      <header className="border-b border-slate-200 px-4 sm:px-8 py-3 sm:py-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/95 backdrop-blur-md shrink-0 z-[110]">
         <div className="flex items-center gap-4">
           <button onClick={() => setViewMode('list')} className="p-2 text-slate-500 hover:text-indigo-600 bg-slate-50 rounded-xl transition-all"><ChevronLeft size={20} /></button>
           <div className="flex flex-col">
@@ -269,7 +453,7 @@ const IssueList: React.FC<IssueListProps> = ({ activeProjectId, activeProject, r
             <span className="text-sm font-bold text-slate-900 mt-1 truncate max-w-[400px]">{workingCopy?.title}</span>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {viewMode === 'view' ? (
             <>
               <Button variant="secondary" onClick={() => setShowPreview(true)}><Eye size={16} /> Preview Report</Button>
@@ -286,7 +470,9 @@ const IssueList: React.FC<IssueListProps> = ({ activeProjectId, activeProject, r
           ) : (
             <>
               <Button variant="secondary" onClick={() => setViewMode('view')}>Discard Draft</Button>
-              <Button onClick={saveFinding}><Save size={14} /> Commit Changes</Button>
+              <Button onClick={saveFinding} disabled={isSaving}>
+                <Save size={14} /> {isSaving ? 'Saving...' : 'Commit Changes'}
+              </Button>
             </>
           )}
           <button onClick={() => setViewMode('list')} className="p-2.5 text-slate-400 hover:text-rose-500 transition-colors ml-2"><X size={20} /></button>
@@ -295,7 +481,7 @@ const IssueList: React.FC<IssueListProps> = ({ activeProjectId, activeProject, r
 
       <div className="flex-1 overflow-hidden flex bg-white">
         {viewMode === 'view' ? (
-          <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/30 p-8 lg:p-16">
+          <div className="flex-1 overflow-y-auto custom-scrollbar no-scrollbar bg-slate-50/30 p-8 lg:p-16">
             <div className="print-report-only">
               {workingCopy && <FindingReport finding={workingCopy} />}
             </div>
@@ -354,14 +540,14 @@ const IssueList: React.FC<IssueListProps> = ({ activeProjectId, activeProject, r
       {showPreview && workingCopy && (
         <div className="fixed inset-0 z-[300] flex flex-col animate-in fade-in duration-200">
           <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowPreview(false)} />
-          <div className="relative m-6 lg:m-10 bg-white rounded-[2rem] border border-slate-200 shadow-2xl overflow-hidden flex flex-col min-h-[70vh]">
+          <div className="relative m-3 sm:m-6 lg:m-10 bg-white rounded-[2rem] border border-slate-200 shadow-2xl overflow-hidden flex flex-col min-h-[70vh]">
             <div className="h-14 px-6 flex items-center justify-between border-b border-slate-100 bg-white/95 backdrop-blur-md shrink-0">
               <div className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em]">Report Preview</div>
               <button onClick={() => setShowPreview(false)} className="p-2 text-slate-400 hover:text-rose-500 transition-colors">
                 <X size={18} />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/30 p-6 lg:p-10">
+            <div className="flex-1 overflow-y-auto custom-scrollbar no-scrollbar bg-slate-50/30 p-6 lg:p-10">
               <FindingReport finding={workingCopy} />
             </div>
           </div>
@@ -381,6 +567,7 @@ const IssueList: React.FC<IssueListProps> = ({ activeProjectId, activeProject, r
               value={emailTo}
               onChange={(e) => setEmailTo(e.target.value)}
               list="recent-issue-emails"
+              disabled={emailSending}
               className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all shadow-sm"
             />
             <datalist id="recent-issue-emails">
@@ -395,6 +582,7 @@ const IssueList: React.FC<IssueListProps> = ({ activeProjectId, activeProject, r
               type="text"
               value={emailSubject}
               onChange={(e) => setEmailSubject(e.target.value)}
+              disabled={emailSending}
               className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all shadow-sm"
             />
           </div>
@@ -403,6 +591,7 @@ const IssueList: React.FC<IssueListProps> = ({ activeProjectId, activeProject, r
             <select
               value={emailFormat}
               onChange={(e) => setEmailFormat(e.target.value as 'pdf' | 'html' | 'docx')}
+              disabled={emailSending}
               className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-900 outline-none"
             >
               <option value="pdf">PDF Attachment</option>
@@ -415,9 +604,16 @@ const IssueList: React.FC<IssueListProps> = ({ activeProjectId, activeProject, r
             <textarea
               value={emailMessage}
               onChange={(e) => setEmailMessage(e.target.value)}
+              disabled={emailSending}
               className="w-full min-h-[120px] bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all shadow-sm"
             />
           </div>
+          {emailSending && (
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-600">
+              <Loader2 size={14} className="animate-spin" />
+              Sending report…
+            </div>
+          )}
           {emailError && (
             <p className="text-[10px] font-black uppercase tracking-widest text-rose-500">
               {emailError}

@@ -8,16 +8,16 @@ import { SeverityBadge } from '../ui/Elements';
 export const FindingReport: React.FC<{ finding: Issue }> = ({ finding }) => {
   return (
     <div className="max-w-5xl mx-auto bg-white rounded-none overflow-hidden min-h-screen">
-      <div className="p-8 lg:p-12 space-y-16">
+      <div className="p-6 sm:p-8 lg:p-12 space-y-12 sm:space-y-16">
         
         {/* Report Identity Profile */}
         <div className="space-y-12">
           <div className="space-y-5">
             <h4 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em] border-b border-indigo-50 pb-3">Security Finding Intelligence</h4>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tighter leading-tight">{finding.title}</h1>
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tighter leading-tight">{finding.title}</h1>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-12 gap-y-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 lg:gap-x-12 gap-y-8 sm:gap-y-10">
             <div className="space-y-2">
               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">CVSS Base</h4>
               <p className={`text-2xl font-black ${parseFloat(finding.cvssScore) >= 7 ? 'text-rose-600' : 'text-indigo-600'} tabular-nums`}>{finding.cvssScore}</p>
@@ -49,16 +49,16 @@ export const FindingReport: React.FC<{ finding: Issue }> = ({ finding }) => {
             </div>
             <h3 className="text-lg font-black text-slate-900 uppercase tracking-widest">Description</h3>
           </div>
-          <div className="ml-5 border-l-2 border-slate-100 pl-10">
+          <div className="ml-3 sm:ml-5 border-l-2 border-slate-100 pl-6 sm:pl-10">
             <MarkdownRenderer content={finding.description} />
           </div>
         </section>
 
         {/* Reorderable Tactical Attributes (The "Bottom" items) */}
         {finding.customFields && finding.customFields.length > 0 && (
-          <div className="pt-16 border-t border-slate-50 space-y-16 pb-24">
+          <div className="pt-12 sm:pt-16 border-t border-slate-50 space-y-12 sm:space-y-16 pb-20 sm:pb-24">
             {finding.customFields.map(f => (
-              <section key={f.id} className="space-y-4 ml-5 border-l-2 border-slate-100 pl-10">
+              <section key={f.id} className="space-y-4 ml-3 sm:ml-5 border-l-2 border-slate-100 pl-6 sm:pl-10">
                 <h4 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] leading-none">{f.label || 'Tactical Context'}</h4>
                 <div className="text-[15px] text-slate-800">
                   <MarkdownRenderer content={f.value} />

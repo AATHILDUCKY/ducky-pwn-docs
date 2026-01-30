@@ -1,7 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
-const Database = require('better-sqlite3');
+let Database;
+let sqliteLoadError;
+try {
+  Database = require('better-sqlite3');
+} catch (error) {
+  sqliteLoadError = error;
+}
 
 let db;
 
@@ -151,6 +157,15 @@ const toIssue = (row) => ({
 const DatabaseService = {
   async initialize() {
     await app.whenReady();
+    if (sqliteLoadError) {
+      const message = [
+        'SQLite native module failed to load.',
+        'Run: npm run electron:rebuild',
+      ].join(' ');
+      const err = new Error(message);
+      err.original = sqliteLoadError;
+      throw err;
+    }
     const storagePath = path.join(app.getPath('userData'), 'ducky-pwn-docs');
     fs.mkdirSync(storagePath, { recursive: true });
     const dbFile = path.join(storagePath, 'vault.db');

@@ -43,7 +43,7 @@ export const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: stri
     <div className="fixed inset-0 z-[400] flex items-center justify-center p-6 animate-in fade-in duration-300">
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden">
-        <div className="p-10 space-y-8">
+        <div className="p-6 sm:p-10 space-y-8">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xl font-black text-slate-800 tracking-tight">{title}</h3>

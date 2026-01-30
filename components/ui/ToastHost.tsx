@@ -30,7 +30,7 @@ const ToastHost: React.FC = () => {
   if (!toasts.length) return null;
 
   return (
-    <div className="fixed right-6 bottom-6 z-[500] space-y-3">
+    <div className="fixed right-3 sm:right-6 bottom-3 sm:bottom-6 z-[500] space-y-3">
       {toasts.map((toast) => (
         <div
           key={toast.id}
